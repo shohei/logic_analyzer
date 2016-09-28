@@ -1,13 +1,5 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
-"""
-   DWF Python Example
-   Author:  Digilent, Inc.
-   Revision: 11/24/2014
-
-   Requires:                       
-       Python 2.7, numpy,
-"""
 from ctypes import *
 from dwfconstants import *
 import math
@@ -50,14 +42,14 @@ print "Configuring Digital Out / In..."
 for i in range(0, 1):
     dwf.FDwfDigitalOutEnableSet(hdwf, c_int(i), c_int(1))
     # dwf.FDwfDigitalOutDividerSet(hdwf, c_int(i), c_int(1<<i))
-    dwf.FDwfDigitalOutDividerSet(hdwf, c_int(i), c_int(10000))
+    dwf.FDwfDigitalOutDividerSet(hdwf, c_int(i), c_int(1000000))
     dwf.FDwfDigitalOutCounterSet(hdwf, c_int(i), c_int(5), c_int(15))
 
 dwf.FDwfDigitalOutConfigure(hdwf, c_int(1))
 
 # set number of sample to acquire
-# nSamples = 100000
-nSamples = 1000
+nSamples = 5000
+# nSamples = 1000
 rgwSamples = (c_uint16*nSamples)()
 cAvailable = c_int()
 cLost = c_int()
@@ -67,28 +59,50 @@ fLost = 0
 fCorrupted = 0
 
 # in record mode samples after trigger are acquired only
-dwf.FDwfDigitalInAcquisitionModeSet(hdwf, acqmodeRecord)
+# dwf.FDwfDigitalInAcquisitionModeSet(hdwf, acqmodeRecord)
+dwf.FDwfDigitalInAcquisitionModeSet(hdwf, acqmodeScanScreen)
+
 # sample rate = system frequency / divider, 100MHz/1000 = 100kHz
-dwf.FDwfDigitalInDividerSet(hdwf, c_int(1000))
+dwf.FDwfDigitalInDividerSet(hdwf, c_int(100000)) #1kHz
 # 16bit per sample format
 dwf.FDwfDigitalInSampleFormatSet(hdwf, c_int(16))
 # dwf.FDwfDigitalInSampleFormatSet(hdwf, c_int(1))
 # number of samples after trigger
-dwf.FDwfDigitalInTriggerPositionSet(hdwf, c_int(nSamples))
+# dwf.FDwfDigitalInTriggerPositionSet(hdwf, c_int(nSamples))
 # trigger when all digital pins are low
-dwf.FDwfDigitalInTriggerSourceSet(hdwf, trigsrcDetectorDigitalIn)
+# dwf.FDwfDigitalInTriggerSourceSet(hdwf, trigsrcDetectorDigitalIn)
 # trigger detector mask:                  low &   hight & ( rising | falling )
 # dwf.FDwfDigitalInTriggerSet(hdwf, c_int(0xFFFF), c_int(0), c_int(0), c_int(0))
 # 16個のピン全てでローボルテージトリガをかける
-dwf.FDwfDigitalInTriggerSet(hdwf, c_int(0xFFFF), c_int(0), c_int(0), c_int(0))
+# dwf.FDwfDigitalInTriggerSet(hdwf, c_int(0xFFFF), c_int(0), c_int(0), c_int(0))
 
 # begin acquisition
 dwf.FDwfDigitalInConfigure(hdwf, c_bool(0), c_bool(1))
 
 print "Starting record"
+plt.ion()
+fig = plt.figure()  # Create figure
+axes = fig.add_subplot(111) # Add subplot (dont worry only one plot appears)
 
+axes.set_autoscale_on(True) # enable autoscale
+axes.autoscale_view(True,True,True)
 
-while cSamples < nSamples:
+hl, = plt.plot([], [])
+hl.set_xdata(range(0,len(rgwSamples)))
+
+current_range = 0
+# while cSamples < nSamples:
+while True:
+    if(cSamples == nSamples):
+        current_range += len(rgwSamples)
+        hl.set_xdata(range(current_range,current_range+nSamples))
+        axes.relim()        # Recalculate limits
+        axes.autoscale_view(True,True,True) #Autoscale
+        plt.draw()
+        plt.pause(0.01)
+        rgwSamples = (c_uint16*nSamples)()
+        cSamples = 0
+
     dwf.FDwfDigitalInStatus(hdwf, c_int(1), byref(sts))
     if cSamples == 0 and (sts == DwfStateConfig or sts == DwfStatePrefill or sts == DwfStateArmed) :
         # acquisition not yet started.
@@ -109,30 +123,16 @@ while cSamples < nSamples:
     if cSamples+cAvailable.value > nSamples :
         cAvailable = c_int(nSamples-cSamples)
     
-    # get samples
     dwf.FDwfDigitalInStatusData(hdwf, byref(rgwSamples, 2*cSamples), c_int(2*cAvailable.value))
     print cAvailable.value
     cSamples += cAvailable.value
 
+    hl.set_ydata(rgwSamples)
+    axes.relim()        # Recalculate limits
+    axes.autoscale_view(True,True,True) #Autoscale
+    plt.draw()
+    plt.pause(0.01)
+
+#never reached
 dwf.FDwfDeviceClose(hdwf)
-
-print "Recording finished"
-if fLost:
-    print "Samples were lost! Reduce sample rate"
-if cCorrupted:
-    print "Samples could be corrupted! Reduce sample rate"
-
-f = open("record.csv", "w")
-for v in rgwSamples:
-    f.write("%s\n" % v)
-f.close()
-
-rgpy=[0.0]*len(rgwSamples)
-for i in range(0,len(rgpy)):
-    rgpy[i]=rgwSamples[i]
-
-plt.plot(rgpy)
-plt.show()
-
-
 
