@@ -34,21 +34,21 @@ if hdwf.value == hdwfNone.value:
 print "Configuring Digital Out / In..."
 
 # generate counter
-# generate on DIO-0 10khz pulse (100MHz/100000/(1+1)), 50% duty (1low 1high)
+# generate on DIO-0 1MHz pulse (100MHz/25/(3+1)), 25% duty (3low 1high)
+#1kHz
 # dwf.FDwfDigitalOutEnableSet(hdwf, c_int(i), c_int(1))
 # dwf.FDwfDigitalOutDividerSet(hdwf, c_int(i), c_int(25))
 # dwf.FDwfDigitalOutCounterSet(hdwf, c_int(i), c_int(3), c_int(1))
 # for i in range(0, 16):
 for i in range(0, 1):
     dwf.FDwfDigitalOutEnableSet(hdwf, c_int(i), c_int(1))
-    # dwf.FDwfDigitalOutDividerSet(hdwf, c_int(i), c_int(1<<i))
-    dwf.FDwfDigitalOutDividerSet(hdwf, c_int(i), c_int(1000000))
-    dwf.FDwfDigitalOutCounterSet(hdwf, c_int(i), c_int(5), c_int(15))
+    dwf.FDwfDigitalOutDividerSet(hdwf, c_int(i), c_int(100*1000*1000)) #1Hz
+    dwf.FDwfDigitalOutCounterSet(hdwf, c_int(i), c_int(10000), c_int(10000))
 
 dwf.FDwfDigitalOutConfigure(hdwf, c_int(1))
 
 # set number of sample to acquire
-nSamples = 5000
+nSamples = 1000
 # nSamples = 1000
 rgwSamples = (c_uint16*nSamples)()
 cAvailable = c_int()
@@ -63,10 +63,10 @@ fCorrupted = 0
 dwf.FDwfDigitalInAcquisitionModeSet(hdwf, acqmodeScanScreen)
 
 # sample rate = system frequency / divider, 100MHz/1000 = 100kHz
-dwf.FDwfDigitalInDividerSet(hdwf, c_int(100000)) #1kHz
+dwf.FDwfDigitalInDividerSet(hdwf, c_int(100*1000)) #100Hz
 # 16bit per sample format
-dwf.FDwfDigitalInSampleFormatSet(hdwf, c_int(16))
-# dwf.FDwfDigitalInSampleFormatSet(hdwf, c_int(1))
+# dwf.FDwfDigitalInSampleFormatSet(hdwf, c_int(16))
+dwf.FDwfDigitalInSampleFormatSet(hdwf, c_int(1))
 # number of samples after trigger
 # dwf.FDwfDigitalInTriggerPositionSet(hdwf, c_int(nSamples))
 # trigger when all digital pins are low
@@ -86,6 +86,7 @@ axes = fig.add_subplot(111) # Add subplot (dont worry only one plot appears)
 
 axes.set_autoscale_on(True) # enable autoscale
 axes.autoscale_view(True,True,True)
+# axes.autoscale_view(True,True,True)
 
 hl, = plt.plot([], [])
 hl.set_xdata(range(0,len(rgwSamples)))
