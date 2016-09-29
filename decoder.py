@@ -58,7 +58,7 @@ xyz = [[0	,0	,0 ],
         [-1	,-1	,-1 ]]
 
 decodemap = pd.DataFrame(xyz,index=values,columns = ["x","y","z"])
-print(decodemap)
 
-#example
-print(decodemap.ix[63,"x"])
+if __name__ == '__main__':
+   print(decodemap)
+   print(decodemap.ix[63,"x"])

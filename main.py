@@ -7,6 +7,7 @@ import math
 import sys
 import matplotlib.pyplot as plt
 import pdb
+from decoder import decodemap
 
 f = open("record.csv", "w")
 
@@ -48,6 +49,10 @@ for i in range(0, 1):
     dwf.FDwfDigitalOutEnableSet(hdwf, c_int(i), c_int(1))
     dwf.FDwfDigitalOutDividerSet(hdwf, c_int(i), c_int(25*1000)) #1MHz -> 1kHz
     dwf.FDwfDigitalOutCounterSet(hdwf, c_int(i), c_int(3), c_int(1))
+for i in range(2, 15):
+    dwf.FDwfDigitalOutEnableSet(hdwf, c_int(i), c_int(1))
+    dwf.FDwfDigitalOutDividerSet(hdwf, c_int(i), c_int(25*1000)) #1MHz -> 1kHz
+    dwf.FDwfDigitalOutCounterSet(hdwf, c_int(i), c_int(4), c_int(0))
 
 dwf.FDwfDigitalOutConfigure(hdwf, c_int(1))
 
@@ -96,7 +101,9 @@ hl.set_xdata(range(0,len(rgwSamples)))
 
 # current_range = 0
 # while cSamples < nSamples:
-total_pulse = 0
+x = 0
+y = 0
+z = 0
 while True:
     if(cSamples == nSamples):
         # current_range += len(rgwSamples)
@@ -106,8 +113,11 @@ while True:
         # plt.draw()
         # plt.pause(0.01)
         for v in rgwSamples:
-            total_pulse += float(v)
-            f.write("%s\n" % str(total_pulse))
+            hexa = int(v)
+            x += decodemap.ix[hexa,"x"] 
+            y += decodemap.ix[hexa,"y"]
+            z += decodemap.ix[hexa,"z"]
+            f.write("%d %d %d\n" % (x,y,z))
         rgwSamples = (c_uint16*nSamples)()
         cSamples = 0
 
