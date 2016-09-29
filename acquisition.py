@@ -55,8 +55,8 @@ dwf.FDwfDigitalOutConfigure(hdwf, c_int(1))
 
 #sample rate = system frequency / divider, 100MHz/1
 dwf.FDwfDigitalInDividerSet(hdwf, c_int(1))
-# 16bit per sample format
-dwf.FDwfDigitalInSampleFormatSet(hdwf, c_int(1))
+# 16bit per sample format # 8, 16, 32 is valid
+dwf.FDwfDigitalInSampleFormatSet(hdwf, c_int(16))
 # set number of sample to acquire
 cSamples = 1000
 rgwSamples = (c_uint16*cSamples)()
@@ -75,10 +75,12 @@ while True:
 print "Acquisition finished"
 
 # get samples, byte size
-dwf.FDwfDigitalInStatusData(hdwf, rgwSamples, 2*cSamples)
+dwf.FDwfDigitalInStatusData(hdwf, rgwSamples, 2*cSamples) #rgwSample: 2byte=uint16
 dwf.FDwfDeviceCloseAll()
 
 rgpy=[0.0]*len(rgwSamples)
+print "len(rgwSamples)",len(rgwSamples)
+print "len(rgpy)",len(rgpy)
 for i in range(0,len(rgpy)):
     rgpy[i]=rgwSamples[i]
 

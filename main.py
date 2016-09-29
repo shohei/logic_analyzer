@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 from ctypes import *
+from numpy import *
 from dwfconstants import *
 import math
 import sys
 import matplotlib.pyplot as plt
 import pdb
+
+f = open("record.csv", "w")
+
 
 if sys.platform.startswith("win"):
     dwf = cdll.dwf
@@ -42,8 +46,8 @@ print "Configuring Digital Out / In..."
 # for i in range(0, 16):
 for i in range(0, 1):
     dwf.FDwfDigitalOutEnableSet(hdwf, c_int(i), c_int(1))
-    dwf.FDwfDigitalOutDividerSet(hdwf, c_int(i), c_int(100*1000*1000)) #1Hz
-    dwf.FDwfDigitalOutCounterSet(hdwf, c_int(i), c_int(10000), c_int(10000))
+    dwf.FDwfDigitalOutDividerSet(hdwf, c_int(i), c_int(25*1000)) #1MHz -> 1kHz
+    dwf.FDwfDigitalOutCounterSet(hdwf, c_int(i), c_int(3), c_int(1))
 
 dwf.FDwfDigitalOutConfigure(hdwf, c_int(1))
 
@@ -63,10 +67,9 @@ fCorrupted = 0
 dwf.FDwfDigitalInAcquisitionModeSet(hdwf, acqmodeScanScreen)
 
 # sample rate = system frequency / divider, 100MHz/1000 = 100kHz
-dwf.FDwfDigitalInDividerSet(hdwf, c_int(100*1000)) #100Hz
+dwf.FDwfDigitalInDividerSet(hdwf, c_int(1*1000)) #100kHz
 # 16bit per sample format
-# dwf.FDwfDigitalInSampleFormatSet(hdwf, c_int(16))
-dwf.FDwfDigitalInSampleFormatSet(hdwf, c_int(1))
+dwf.FDwfDigitalInSampleFormatSet(hdwf, c_int(16))
 # number of samples after trigger
 # dwf.FDwfDigitalInTriggerPositionSet(hdwf, c_int(nSamples))
 # trigger when all digital pins are low
@@ -91,16 +94,20 @@ axes.autoscale_view(True,True,True)
 hl, = plt.plot([], [])
 hl.set_xdata(range(0,len(rgwSamples)))
 
-current_range = 0
+# current_range = 0
 # while cSamples < nSamples:
+total_pulse = 0
 while True:
     if(cSamples == nSamples):
-        current_range += len(rgwSamples)
-        hl.set_xdata(range(current_range,current_range+nSamples))
-        axes.relim()        # Recalculate limits
-        axes.autoscale_view(True,True,True) #Autoscale
-        plt.draw()
-        plt.pause(0.01)
+        # current_range += len(rgwSamples)
+        # hl.set_xdata(range(current_range,current_range+nSamples))
+        # axes.relim()        # Recalculate limits
+        # axes.autoscale_view(True,True,True) #Autoscale
+        # plt.draw()
+        # plt.pause(0.01)
+        for v in rgwSamples:
+            total_pulse += float(v)
+            f.write("%s\n" % str(total_pulse))
         rgwSamples = (c_uint16*nSamples)()
         cSamples = 0
 
@@ -113,9 +120,12 @@ while True:
 
     cSamples += cLost.value
     
-    if cLost.value :
+    if cLost.value:
         fLost = 1
-    if cCorrupted.value :
+        print "Samples were lost! Reduce sample rate"
+
+    if cCorrupted.value:
+        print "Samples could be corrupted! Reduce sample rate"
         fCorrupted = 1
 
     if cAvailable.value==0 :
@@ -125,15 +135,16 @@ while True:
         cAvailable = c_int(nSamples-cSamples)
     
     dwf.FDwfDigitalInStatusData(hdwf, byref(rgwSamples, 2*cSamples), c_int(2*cAvailable.value))
-    print cAvailable.value
+    # print cAvailable.value
     cSamples += cAvailable.value
+    # total_pulse += len((nonzero(rgwSamples))[0])
 
-    hl.set_ydata(rgwSamples)
-    axes.relim()        # Recalculate limits
-    axes.autoscale_view(True,True,True) #Autoscale
-    plt.draw()
-    plt.pause(0.01)
+    # hl.set_ydata(rgwSamples)
+    # axes.relim()        # Recalculate limits
+    # axes.autoscale_view(True,True,True) #Autoscale
+    # plt.draw()
+    # plt.pause(0.01)
 
 #never reached
 dwf.FDwfDeviceClose(hdwf)
-
+f.close()
