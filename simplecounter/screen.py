@@ -27,6 +27,7 @@ class SimpleCounter:
         dwf = self.dwf 
         hdwf = self.hdwf
         sts = self.sts
+        f = self.f
 
         #declare ctype variables
         
@@ -61,6 +62,8 @@ class SimpleCounter:
         dwf.FDwfDigitalInAcquisitionModeSet(hdwf, acqmodeScanScreen)
         
         # sample rate = system frequency / divider, 100MHz/1000 = 100kHz
+        # dwf.FDwfDigitalInDividerSet(hdwf, c_int(1*1000)) #100kHz drop
+        # dwf.FDwfDigitalInDividerSet(hdwf, c_int(1*1000*5)) #20kHz drop
         dwf.FDwfDigitalInDividerSet(hdwf, c_int(1*1000*10)) #10kHz
         # 16bit per sample format
         dwf.FDwfDigitalInSampleFormatSet(hdwf, c_int(16))
@@ -91,6 +94,9 @@ class SimpleCounter:
         current_range = 0
         while True:
             if(cSamples == nSamples):
+                self.total_pulse += len((nonzero(rgwSamples))[0])
+                for v in rgwSamples:
+                    f.write("%s\n" % v)
                 current_range += len(rgwSamples)
                 hl.set_xdata(range(current_range,current_range+nSamples))
                 axes.relim()        # Recalculate limits
@@ -126,7 +132,6 @@ class SimpleCounter:
             dwf.FDwfDigitalInStatusData(hdwf, byref(rgwSamples, 2*cSamples), c_int(2*cAvailable.value))
             # print cAvailable.value
             cSamples += cAvailable.value
-            self.total_pulse += len((nonzero(rgwSamples))[0])
         
             hl.set_ydata(rgwSamples)
             axes.relim()        # Recalculate limits
