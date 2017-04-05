@@ -7,9 +7,10 @@ import math
 import sys
 import matplotlib.pyplot as plt
 import pdb
+import os 
 
 
-if __name__=="__main__":
+if __name__=="__main__": 
     total_pulse = 0
     f = open("record.csv", "w")
     if sys.platform.startswith("win"):
@@ -40,7 +41,8 @@ if __name__=="__main__":
     
     # set number of sample to acquire
     # nSamples = 100000
-    nSamples = 20000
+    nSamples = 50000
+    # nSamples = 10000
     # nSamples = 1000
     rgwSamples = (c_uint16*nSamples)()
     cAvailable = c_int()
@@ -68,7 +70,7 @@ if __name__=="__main__":
     # dwf.FDwfDigitalInTriggerSet(hdwf, c_int(0xFFFF), c_int(0), c_int(0), c_int(0))
     # 16個のピン全てでローボルテージトリガをかける
     # dwf.FDwfDigitalInTriggerSet(hdwf, c_int(0xFFFF), c_int(0), c_int(0), c_int(0))
-    dwf.FDwfDigitalInTriggerSet(hdwf, c_int(0x01), c_int(0), c_int(0), c_int(0))
+    dwf.FDwfDigitalInTriggerSet(hdwf, c_int(0xFFFF), c_int(0), c_int(0), c_int(0))
     
     # begin acquisition
     dwf.FDwfDigitalInConfigure(hdwf, c_bool(0), c_bool(1))
@@ -83,7 +85,6 @@ if __name__=="__main__":
     # rgwSamples = (c_uint16*nSamples)()
     # cSamples = 0
     while cSamples < nSamples:
-        print(cSamples)
         dwf.FDwfDigitalInStatus(hdwf, c_int(1), byref(sts))
         if cSamples == 0 and (sts == DwfStateConfig or sts == DwfStatePrefill or sts == DwfStateArmed) :
             # acquisition not yet started.
@@ -111,12 +112,14 @@ if __name__=="__main__":
         # print cAvailable.value
         cSamples += cAvailable.value
         total_pulse += len((nonzero(rgwSamples))[0])
+        print(cSamples)
 
     for v in rgwSamples:
         f.write("%s\n" % v)
     print("total_pulse: "+str(total_pulse))
     dwf.FDwfDeviceClose(hdwf)
     f.close()
+    os.system("Rscript showSum.R")
 
 
 
